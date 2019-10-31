@@ -10,21 +10,7 @@ requirejs.config({
 });
 
 require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
-	// jQuery version
-/*	function flash(message){
-		(function(message){
-			var flsh = $("<div></div>");
-			flsh.addClass("flash");
-			flsh.text(message);
-			flsh.appendTo(document.body);
-			setTimeout(function(){
-				flsh.slideUp(500, function(){
-					flsh.remove();
-				});
-			}, 2000);
-		})(message);
-	}
-*/
+
 	var message = document.getElementById('message'),
       handle = document.getElementById('handle'),
       btn = document.getElementById('send'),
@@ -82,14 +68,15 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	// }, false);
 
 	btn.addEventListener('click', function(){
-		socket.emit('chat', {
+		socket.emit('publicChat', {
 			message: message.value,
 			handle: handle.value
 		})
 		message.value = "";
 	});
+	
 
-	socket.on('chat', function(data){
+	socket.on('publicChat', function(data){
     output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>';
 	});
 
