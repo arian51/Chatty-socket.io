@@ -1,6 +1,3 @@
-/* eslint-env node */
-/* eslint-disable no-console */
-
 var http = require("http"),
 	url = require("url"),
 	path = require("path"),
@@ -11,39 +8,6 @@ var http = require("http"),
 	express = require("express");
 
 var app, io;
- 
-// Simple Static File Server.  Used under the terms of the BSD license.
-//   http://classes.engineering.wustl.edu/cse330/index.php/Node.JS
-// app = http.createServer(function(req, resp){
-// 	var filename = path.join(__dirname, "public_html", url.parse(req.url).pathname);
-// 	(fs.exists || path.exists)(filename, function(exists){
-// 		if (exists) {
-// 			fs.readFile(filename, function(err, data){
-// 				if (err) {
-// 					// File exists but is not readable (permissions issue?)
-// 					resp.writeHead(500, {
-// 						"Content-Type": "text/plain"
-// 					});
-// 					resp.write("Internal server error: could not read file");
-// 					resp.end();
-// 					return;
-// 				}
- 
-// 				// File exists and is readable
-// 				var mimetype = mime.lookup(filename);
-// 				resp.writeHead(200, {
-// 					"Content-Type": mimetype
-// 				});
-// 				resp.write(data);
-// 				resp.end();
-// 				return;
-// 			});
-// 		}
-// 	});
-// });
-//app.listen(3456);
-//io = socketio.listen(app);
-//SocketIOFileUploadServer.listen(app);
 
 app = express()
 	.use(SocketIOFileUploadServer.router)
