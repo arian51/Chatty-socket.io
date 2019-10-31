@@ -12,20 +12,21 @@ requirejs.config({
 require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 
 	var message = document.getElementById('message'),
-      handle = document.getElementById('handle'),
-      btn = document.getElementById('send'),
-      output = document.getElementById('output');
-
+		handle = document.getElementById('handle'),
+		btn = document.getElementById('send'),
+		output = document.getElementById('output'),
+		roomName = document.getElementById('room'),
+		roomBtn = document.getElementById('enter-room');
 
 	// non-jQuery version
 	// eslint-disable-next-line no-redeclare
-	function flash(message){
-		(function(message){
+	function flash(message) {
+		(function (message) {
 			var flsh = document.createElement("div");
 			flsh.setAttribute("class", "flash");
 			flsh.textContent = message;
 			document.body.appendChild(flsh);
-			setTimeout(function(){
+			setTimeout(function () {
 				document.body.removeChild(flsh);
 			}, 10000);
 		})(message);
@@ -33,26 +34,26 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 
 	var socket = io.connect();
 	var uploader = new SocketIOFileUpload(socket);
-	uploader.addEventListener("complete", function(event){
+	uploader.addEventListener("complete", function (event) {
 		console.log(event);
-		flash("Upload Complete: "+event.file.name);
+		flash("Upload Complete: " + event.file.name);
 	});
-	uploader.addEventListener("choose", function(event){
-		flash("Files Chosen: "+event.files);
+	uploader.addEventListener("choose", function (event) {
+		flash("Files Chosen: " + event.files);
 	});
-	uploader.addEventListener("start", function(event){
+	uploader.addEventListener("start", function (event) {
 		event.file.meta.hello = "World";
 	});
-	uploader.addEventListener("progress", function(event){
+	uploader.addEventListener("progress", function (event) {
 		console.log(event);
-		console.log("File is", event.bytesLoaded/event.file.size*100, "percent loaded");
+		console.log("File is", event.bytesLoaded / event.file.size * 100, "percent loaded");
 	});
-	uploader.addEventListener("load", function(event){
-		flash("File Loaded: "+event.file.name);
+	uploader.addEventListener("load", function (event) {
+		flash("File Loaded: " + event.file.name);
 		console.log(event);
 	});
-	uploader.addEventListener("error", function(event){
-		flash("Error: "+event.message);
+	uploader.addEventListener("error", function (event) {
+		flash("Error: " + event.message);
 		console.log(event.message);
 		if (event.code === 1) {
 			alert("Don't upload such a big file");
@@ -67,18 +68,39 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	// 	uploader.prompt();
 	// }, false);
 
-	btn.addEventListener('click', function(){
+	btn.addEventListener('click', function () {
 		socket.emit('publicChat', {
 			message: message.value,
-			handle: handle.value
+			handle: handle.value,
+			room: roomName.options[roomName.selectedIndex].value
 		})
 		message.value = "";
 	});
-	
 
-	socket.on('publicChat', function(data){
-    output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>';
+	roomBtn.addEventListener('click', function () {
+		output.innerHTML = '';
+		socket.emit('getChat', {
+			room: roomName.options[roomName.selectedIndex].value
+		})
 	});
+
+	// roomBtn.addEventListener('click', function () {
+	// 	socket.emit('joinRoom', roomName.value);
+	// })
+
+	socket.on('publicChat', function (data) {
+		console.log(data);
+		if (data.room === roomName.options[roomName.selectedIndex].value) {
+			output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>';
+		}
+	});
+
+	socket.on('getChat', function (data) {
+		console.log(data);
+		output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>';
+	});
+
+	//socket.emit('chat message', { room: 'abc', msg: 'hello there' });
 
 	uploader.listenOnInput(document.getElementById("plain_input_element"));
 	// uploader.listenOnDrop(document.getElementById("file_drop"));

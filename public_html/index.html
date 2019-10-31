@@ -1,44 +1,62 @@
 <html>
-<head>
-<title>Upload Form</title>
+  <head>
+    <title>Chat Application</title>
 
-<style type="text/css">
-.flash{
-	position: fixed;
-	left: 0;
-	width: 100%;
-	height: 20px;
-	top: 0;
-	background-color: #3AC8DE;
-	box-shadow: 0 0 6px 6px #3AC8DE;
-	text-align: center;
-	font-size: 20px;
-}
-#ul_form{
-	display: none;
-}
-</style>
-</head>
-<body>
-
-<!-- <button id="ul_btn">Select File</button>
+    <style type="text/css">
+      .flash {
+        position: fixed;
+        left: 0;
+        width: 100%;
+        height: 20px;
+        top: 0;
+        background-color: #3ac8de;
+        box-shadow: 0 0 6px 6px #3ac8de;
+        text-align: center;
+        font-size: 20px;
+      }
+      #ul_form {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <button id="ul_btn">Select File</button>
  -->
-<div id="mario-chat">
-    <h2>Mario Chat</h2>
-    <div id="chat-window">
+    <div id="mario-chat">
+      <h2>Mario Chat</h2>
+      <div id="chat-window">
         <div id="output"></div>
+      </div>
+      <div id="chat-box">
+        <input id="handle" type="text" placeholder="Handle" />
+        <input id="message" type="text" placeholder="Message" />
+        <button id="send">Send</button>
+	  </div>
+	  
+	  <div class="" id="choose-room" style="margin-top:15px;">
+		<select id='room'>
+			<option value="room1">Room 1</option>
+			<option value="room2">Room 2</option>
+			<option value="room3">Room 3</option>
+			<option value="room4">Room 4</option>
+		  </select>
+		  <button id="enter-room">Select</button>
+	  </div>
+
+	  <div id="upload-file" style="margin-top:15px;">
+		<input type="file" id="plain_input_element" />
+	  </div>
     </div>
-    <input id="handle" type="text" placeholder="Handle" />
-    <input id="message" type="text" placeholder="Message" />
-    <button id="send">Send</button>
-</div>
 
-<input type="file" id="plain_input_element"/>
+    <!-- <div id="file_drop" dropzone="copy" title="drop files for upload">drop file here</div> -->
 
-<input type="file" id="fileInput"/>
-<!-- <div id="file_drop" dropzone="copy" title="drop files for upload">drop file here</div> -->
-
-<script data-main="config.js" src="//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.14/require.min.js"></script>
-
-</body>
+    <script
+      data-main="config.js"
+      src="//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.14/require.min.js"
+    ></script>
+  </body>
 </html>
+
+<!-- 
+<input type="text" class="" id="room" placeholder="Enter Room" />
+<button id="sendRoom">Send</button> -->
