@@ -69,6 +69,11 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	// }, false);
 
 	btn.addEventListener('click', function () {
+
+		// data = {userName: userName, userId: socket.id};
+		// socket.emit('setSocketId', data);
+
+
 		socket.emit('publicChat', {
 			message: message.value,
 			handle: handle.value,
@@ -83,10 +88,6 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 			room: roomName.options[roomName.selectedIndex].value
 		})
 	});
-
-	// roomBtn.addEventListener('click', function () {
-	// 	socket.emit('joinRoom', roomName.value);
-	// })
 
 	socket.on('publicChat', function (data) {
 		console.log(data);

@@ -31,21 +31,33 @@
         <input id="handle" type="text" placeholder="Handle" />
         <input id="message" type="text" placeholder="Message" />
         <button id="send">Send</button>
-	  </div>
-	  
-	  <div class="" id="choose-room" style="margin-top:15px;">
-		<select id='room'>
-			<option value="room1">Room 1</option>
-			<option value="room2">Room 2</option>
-			<option value="room3">Room 3</option>
-			<option value="room4">Room 4</option>
-		  </select>
-		  <button id="enter-room">Select</button>
+      </div>
+
+      <div class="" id="choose-room" style="margin-top:15px;">
+        <select id="room">
+          <option value="room1">Room 1</option>
+          <option value="room2">Room 2</option>
+          <option value="room3">Room 3</option>
+          <option value="room4">Room 4</option>
+        </select>
+        <button id="enter-room">Select</button>
 	  </div>
 
-	  <div id="upload-file" style="margin-top:15px;">
-		<input type="file" id="plain_input_element" />
-	  </div>
+      <div id="private-message" style="margin-top: 15px;">
+        <div id="chat-window">
+          <div id="private-output"></div>
+        </div>
+        <div id="chat-box">
+          <input id="user-id" type="text" placeholder="user_id" />
+          <input id="message" type="text" placeholder="Message" />
+          <button id="send-private">Send</button>
+		</div>
+		<button id="my-messages" style="margin-top: 15px;">Inbox</button>
+      </div>
+
+      <div id="upload-file" style="margin-top:15px;">
+        <input type="file" id="plain_input_element" />
+      </div>
     </div>
 
     <!-- <div id="file_drop" dropzone="copy" title="drop files for upload">drop file here</div> -->
