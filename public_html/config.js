@@ -16,9 +16,15 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		btn = document.getElementById('send'),
 		output = document.getElementById('output'),
 		roomName = document.getElementById('room'),
-		roomBtn = document.getElementById('enter-room');
+		roomBtn = document.getElementById('enter-room'),
 
-	// non-jQuery version
+		myUserName = document.getElementById('my-username'),
+		myUsrBtn = document.getElementById('submit-username'),
+
+		toUsername = document.getElementById('username'),
+		pvMessage = document.getElementById('pvMessage'),
+		pvBtn = document.getElementById('send-private');
+		
 	// eslint-disable-next-line no-redeclare
 	function flash(message) {
 		(function (message) {
@@ -31,6 +37,8 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 			}, 10000);
 		})(message);
 	}
+
+	//-------------UPLOAD-------------//
 
 	var socket = io.connect();
 	var uploader = new SocketIOFileUpload(socket);
@@ -59,21 +67,12 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 			alert("Don't upload such a big file");
 		}
 	});
-	uploader.maxFileSize = 3000000; // 30 Megabyte
+	uploader.maxFileSize = 3000000;
 	uploader.useBuffer = true;
 	uploader.chunkSize = 1024;
-	//uploader.useText = true;
-	//uploader.serializedOctets = true;
-	// document.getElementById("ul_btn").addEventListener("click", function(){
-	// 	uploader.prompt();
-	// }, false);
+
 
 	btn.addEventListener('click', function () {
-
-		// data = {userName: userName, userId: socket.id};
-		// socket.emit('setSocketId', data);
-
-
 		socket.emit('publicChat', {
 			message: message.value,
 			handle: handle.value,
@@ -89,6 +88,18 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		})
 	});
 
+	// We Should Get The UserName In The Beginning
+	myUsrBtn.addEventListener('click', function () {
+		console.log('your username has been set');
+		data = { userName: myUserName, userId: socket.id };
+		socket.emit('setSocketId', data);
+	})
+
+	pvBtn.addEventListener('click',function (){
+		console.log('This part');
+		socket.emit('privateChat', {username: toUsername.value, message:pvMessage.value})
+	})
+
 	socket.on('publicChat', function (data) {
 		console.log(data);
 		if (data.room === roomName.options[roomName.selectedIndex].value) {
@@ -101,10 +112,13 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>';
 	});
 
-	//socket.emit('chat message', { room: 'abc', msg: 'hello there' });
+	socket.on('privateChat', function (data) {
+		console.log(data);
+		output.innerHTML += '<p>' + data + '</p>';
+	});
 
 	uploader.listenOnInput(document.getElementById("plain_input_element"));
-	// uploader.listenOnDrop(document.getElementById("file_drop"));
+
 
 	window.uploader = uploader;
 });

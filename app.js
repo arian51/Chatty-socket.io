@@ -41,15 +41,23 @@ mongo.connect(mongoUrl, {
 
 		console.log('made socket connection', socket.id);
 
-		// socket.on('joinRoom', function (room) {
-		// 	socket.join(room);
-		// 	console.log('user joined to ' + room)
-		// 	io.to(room).emit('some event');
-		// });
+		// Set socket id
 
-		// socket.on('leaveRoom', function(room){
-		// 	socket.leave(room);
-		// })
+		 var userNames = {};
+		 socket.on('setSocketId', function (data) {
+		 	var userName = data.myUserName;
+		 	var userId = data.userId;
+		 	userNames[userName] = userId;
+		 });
+
+		 // Private Chat 
+
+		 socket.on('privateChat', function (data) {
+			 user = data.usernsame;
+			 message = data.message;
+			console.log(data)
+			io.to(`${userNames[user]}`).emit('privateChat', message);
+		 })
 
 		// Get chat from mongo collection
 		Chat.find().limit(100).sort({ _id: 1 }).toArray(function (err, res) {
@@ -60,8 +68,8 @@ mongo.connect(mongoUrl, {
 
 		socket.on('getChat', function (data) {
 			let room = data.room
-			
-			Chat.find({room: room}).limit(100).sort({ _id: 1 }).toArray(function (err, res) {
+
+			Chat.find({ room: room }).limit(100).sort({ _id: 1 }).toArray(function (err, res) {
 				console.log(res);
 				for (var message of res) {
 					socket.emit('getChat', message);

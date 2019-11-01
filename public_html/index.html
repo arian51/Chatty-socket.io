@@ -17,43 +17,64 @@
       #ul_form {
         display: none;
       }
+
+      div {
+        margin-top: 8px;
+      }
+
     </style>
   </head>
+
   <body>
     <!-- <button id="ul_btn">Select File</button>
  -->
     <div id="mario-chat">
-      <h2>Mario Chat</h2>
+      <h2>Public Chat</h2>
       <div id="chat-window">
         <div id="output"></div>
       </div>
-      <div id="chat-box">
+      <div id="chat-box" style="background-color:#3f53b7; padding: 10px;">
         <input id="handle" type="text" placeholder="Handle" />
         <input id="message" type="text" placeholder="Message" />
         <button id="send">Send</button>
+
+        <div class="" id="choose-room">
+          <select id="room">
+            <option value="room1">Room 1</option>
+            <option value="room2">Room 2</option>
+            <option value="room3">Room 3</option>
+            <option value="room4">Room 4</option>
+          </select>
+          <button id="enter-room">Select</button>
+        </div>
       </div>
 
-      <div class="" id="choose-room" style="margin-top:15px;">
-        <select id="room">
-          <option value="room1">Room 1</option>
-          <option value="room2">Room 2</option>
-          <option value="room3">Room 3</option>
-          <option value="room4">Room 4</option>
-        </select>
-        <button id="enter-room">Select</button>
-	  </div>
-
-      <div id="private-message" style="margin-top: 15px;">
+      <br>
+      
+      <div id="private-message">
+        <h4>Select Your Username</h4>
         <div id="chat-window">
           <div id="private-output"></div>
         </div>
+        <div id="choose-usename">
+          <input id="my-username" type="text" placeholder="my-username" />
+          <button id="submit-username">submit</button>
+        </div>
+
+        <div class="header"><h4>Send Private Message</h4></div>
+
         <div id="chat-box">
-          <input id="user-id" type="text" placeholder="user_id" />
-          <input id="message" type="text" placeholder="Message" />
+          <input id="username" type="text" placeholder="username" />
+          <input id="pvMessage" type="text" placeholder="Message" />
           <button id="send-private">Send</button>
-		</div>
-		<button id="my-messages" style="margin-top: 15px;">Inbox</button>
+        </div>
+        <div>
+          <button id="my-messages">Inbox</button>
+        </div>
       </div>
+
+      
+      <div class="header"><h4>Upload Files</h4></div>
 
       <div id="upload-file" style="margin-top:15px;">
         <input type="file" id="plain_input_element" />
