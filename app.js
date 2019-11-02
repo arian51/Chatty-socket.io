@@ -11,9 +11,10 @@ var http = require("http"),
 	request = require("request");
 
 var app, io;
+
+//------------DATABASE------------//
 const mongoUrl = 'mongodb://localhost:27017';
 
-const dbToken = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1bmlxdWVfbmFtZSI6ImFyaWFua2hlaWJhcmlAZ21haWwuY29tIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy91c2VyZGF0YSI6IjMxMjU4IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy92ZXJzaW9uIjoiMiIsImlzcyI6Imh0dHA6Ly9hcGkucGFyc2FzcGFjZS5jb20vIiwiYXVkIjoiQW55IiwiZXhwIjoxNjA0MTc0MzE2LCJuYmYiOjE1NzI2MzgzMTZ9.4WurKjeKq6Vj9xhabKQvDdL7ng7h8069wLAx6v80HWA';
 mongo.connect(mongoUrl, {
 	useNewUrlParser: true,
 	useUnifiedTopology: true,
@@ -23,11 +24,12 @@ mongo.connect(mongoUrl, {
 		return;
 	}
 
-	//----------------------------
+	//------------DATABASE CONFIGURATION------------//
 	const db = client.db('mongoChat')
-	const collection = db.collection('chats')
-	//----------------------------
+	const chat = db.collection('chats');
+	const usernames = db.collection('usernames');
 
+	//------------EXPRESS CONFIGURATION------------//
 	app = express()
 		.use(SocketIOFileUploadServer.router)
 		.use(express.static(__dirname + "/out"))
@@ -36,42 +38,24 @@ mongo.connect(mongoUrl, {
 	io = socketio.listen(app);
 
 	console.log("Listening on port 4567");
-	// Make collection
-	let Chat = db.collection('chats');
 
+
+	//------------ON USER CONNECTION------------//
 	io.sockets.on("connection", function (socket) {
-
 		console.log('made socket connection', socket.id);
 
-		// Set socket id
-
-		var userNames = {};
-		socket.on('setSocketId', function (data) {
-			var userName = data.myUserName;
-			var userId = data.userId;
-			userNames[userName] = userId;
-		});
-
-		// Private Chat 
-
-		socket.on('privateChat', function (data) {
-			user = data.usernsame;
-			message = data.message;
-			console.log(data)
-			io.to(`${userNames[user]}`).emit('privateChat', message);
-		})
-
-		// Get chat from mongo collection
-		Chat.find().limit(100).sort({ _id: 1 }).toArray(function (err, res) {
+		// Get chat messages from mongo collection
+		chat.find().limit(100).sort({ _id: 1 }).toArray(function (err, res) {
 			for (var message of res) {
 				socket.emit('publicChat', message);
 			}
 		})
 
+		// Get chat messages that belong the same rooms
 		socket.on('getChat', function (data) {
 			let room = data.room
 
-			Chat.find({ room: room }).limit(100).sort({ _id: 1 }).toArray(function (err, res) {
+			chat.find({ room: room }).limit(100).sort({ _id: 1 }).toArray(function (err, res) {
 				console.log(res);
 				for (var message of res) {
 					socket.emit('getChat', message);
@@ -79,19 +63,36 @@ mongo.connect(mongoUrl, {
 			})
 		});
 
-		// Handle chat event
+		// Get the id of each user from client side and equal them to their user name. exp: Arian : 14xz54
+		var userNames = {};	// Change it so we can store usernames in the database
+		socket.on('setSocketId', function (data) {
+			var userName = data.myUserName;
+			var userId = data.userId;
+			userNames[userName] = userId;
+		});
+
+		// Send private message from one user to another 
+		socket.on('privateChat', function (data) {
+			user = data.username;
+			message = data.message;
+			console.log(data)
+			io.to(`${userNames[user]}`).emit('privateChat', message);
+		})
+
+		// Send public messages 
 		socket.on('publicChat', function (data) {
 			let name = data.handle
 			let message = data.message
 			let room = data.room
-			
+
 			console.log(data);
 			if (name != '' && message != '' && room != '') {
 				io.sockets.emit('publicChat', data);
-				Chat.insert({ handle: name, message: message, room: room })
+				chat.insert({ handle: name, message: message, room: room })
 			}
 		});
 
+		// Upload files to database
 		var siofuServer = new SocketIOFileUploadServer();
 		siofuServer.on("saved", function (event) {
 			console.log(event.file);
@@ -99,7 +100,7 @@ mongo.connect(mongoUrl, {
 			console.log(event.file.pathName);
 			var fileAddress = event.file.pathName;
 			uploadFile(fileAddress);
-			
+
 		});
 		siofuServer.on("error", function (data) {
 			console.log("Error: " + data.memo);
@@ -115,23 +116,10 @@ mongo.connect(mongoUrl, {
 		siofuServer.maxFileSize = 3000000;
 		siofuServer.listen(socket);
 	});
-
-	// var options = { method: 'POST',
-	// url: 'http://api.parsaspace.com/v1/files/upload',
-	// headers:
-	// {    
-	//  'content-type': 'multipart/form-data; boundary=---011000010111000001101001',
-	//   authorization: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1bmlxdWVfbmFtZSI6ImFyaWFua2hlaWJhcmlAZ21haWwuY29tIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy91c2VyZGF0YSI6IjMxMjU4IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy92ZXJzaW9uIjoiMiIsImlzcyI6Imh0dHA6Ly9hcGkucGFyc2FzcGFjZS5jb20vIiwiYXVkIjoiQW55IiwiZXhwIjoxNjA0MTc5MzE2LCJuYmYiOjE1NzI2NDMzMTZ9.0WfsPuI5CztCx1IpUoMqCVaorXosNFTuvcJlWpenvvI'},
-	//   formData:{ file: { value: fs.createReadStream('C:/Users/Arian/Desktop/photo_2019-10-07_18-37-35.jpg') ,options:{ filename: 'photo_2019-10-07_18-37-35.jpg',contentType: null } }, domain: 'myprivatesubdomain.parsaspace.com', path: '/' } };
-
-	//   request(options, function (error, response, body) {
-	//   if (error) throw new Error(error);
-
-	//   console.log(body);
-	//    })
-
 })
 
+
+//------------A FUNCTION FOR SENDING FILE TO EXTERNAL DATABASE------------//
 function uploadFile(fileAddress) {
 
 	var fileAddress2 = fileAddress.replace(/\\/g, "/");
@@ -139,7 +127,7 @@ function uploadFile(fileAddress) {
 	var str = fileAddress2;
 	var n = str.lastIndexOf('/');
 	var fileName = str.substring(n + 1);
-	
+
 	console.log(fileAddress2)
 	var options = {
 		method: 'POST',

@@ -2,6 +2,7 @@
 /* eslint-disable no-console */
 /* global requirejs */
 
+//------------ADDING REQUIERD FILES TO CLIENT-SIDE JS------------//
 requirejs.config({
 	paths: {
 		"SocketIOFileUpload": "/siofu/client",
@@ -9,6 +10,7 @@ requirejs.config({
 	}
 });
 
+//------------RUN AFTER LOADING REQUIRMENTS------------//
 require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 
 	var message = document.getElementById('message'),
@@ -24,7 +26,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		toUsername = document.getElementById('username'),
 		pvMessage = document.getElementById('pvMessage'),
 		pvBtn = document.getElementById('send-private');
-		
+
 	// eslint-disable-next-line no-redeclare
 	function flash(message) {
 		(function (message) {
@@ -38,8 +40,62 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		})(message);
 	}
 
-	//-------------UPLOAD-------------//
+	//------------GET USERNAME FOR PRIVATE CHAT------------//
+	myUsrBtn.addEventListener('click', function () {
+		console.log('your username has been set');
+		data = { userName: myUserName, userId: socket.id };
+		socket.emit('setSocketId', data);
+	})
 
+	//------------ENTERING A ROOM------------//
+	roomBtn.addEventListener('click', function () {
+		output.innerHTML = '';
+		socket.emit('getChat', {
+			room: roomName.options[roomName.selectedIndex].value
+		})
+	});
+
+	//------------SEND USER MESSAGE TO SERVER SIDE (PUBLIC)------------//
+	btn.addEventListener('click', function () {
+		uploader = document.getElementById("plain_input_element");
+		console.log(uploader);
+
+		socket.emit('publicChat', {
+			message: message.value,
+			handle: handle.value,
+			room: roomName.options[roomName.selectedIndex].value
+		})
+		message.value = "";
+	});
+
+	//------------SEND USER MESSAGE TO SERVER SIDE (PRIVATE)------------//
+	pvBtn.addEventListener('click', function () {
+		console.log('This part');
+		socket.emit('privateChat', { username: toUsername.value, message: pvMessage.value })
+	})
+
+
+	//------------GET MESSAGES FROM SERVER (PUBLIC)------------//
+	socket.on('publicChat', function (data) {
+		console.log(data);
+		if (data.room === roomName.options[roomName.selectedIndex].value) {
+			output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>';
+		}
+	});
+
+	//------------GET MESSAGES FROM SERVER (PRIVATE)------------//
+	socket.on('privateChat', function (data) {
+		console.log(data);
+		output.innerHTML += '<p>' + data + '</p>';
+	});
+
+	//------------GET MESSAGES FROM SERVER (CHATROOMS)------------//
+	socket.on('getChat', function (data) {
+		console.log(data);
+		output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>';
+	});
+
+	//-------------UPLOAD-------------//
 	var socket = io.connect();
 	var uploader = new SocketIOFileUpload(socket);
 	uploader.addEventListener("complete", function (event) {
@@ -70,55 +126,6 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	uploader.maxFileSize = 3000000;
 	uploader.useBuffer = true;
 	uploader.chunkSize = 1024;
-
-
-	btn.addEventListener('click', function () {
-		socket.emit('publicChat', {
-			message: message.value,
-			handle: handle.value,
-			room: roomName.options[roomName.selectedIndex].value
-		})
-		message.value = "";
-	});
-
-	roomBtn.addEventListener('click', function () {
-		output.innerHTML = '';
-		socket.emit('getChat', {
-			room: roomName.options[roomName.selectedIndex].value
-		})
-	});
-
-	// We Should Get The UserName In The Beginning
-	myUsrBtn.addEventListener('click', function () {
-		console.log('your username has been set');
-		data = { userName: myUserName, userId: socket.id };
-		socket.emit('setSocketId', data);
-	})
-
-	pvBtn.addEventListener('click',function (){
-		console.log('This part');
-		socket.emit('privateChat', {username: toUsername.value, message:pvMessage.value})
-	})
-
-	socket.on('publicChat', function (data) {
-		console.log(data);
-		if (data.room === roomName.options[roomName.selectedIndex].value) {
-			output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>';
-		}
-	});
-
-	socket.on('getChat', function (data) {
-		console.log(data);
-		output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>';
-	});
-
-	socket.on('privateChat', function (data) {
-		console.log(data);
-		output.innerHTML += '<p>' + data + '</p>';
-	});
-
-	uploader.listenOnInput(document.getElementById("plain_input_element"));
-
 
 	window.uploader = uploader;
 });
