@@ -7,11 +7,13 @@ var http = require("http"),
 	socketio = require("socket.io"),
 	express = require("express"),
 	mongo = require('mongodb').MongoClient,
-	_ = require('lodash');
+	_ = require('lodash'),
+	request = require("request");
 
 var app, io;
 const mongoUrl = 'mongodb://localhost:27017';
 
+const dbToken = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1bmlxdWVfbmFtZSI6ImFyaWFua2hlaWJhcmlAZ21haWwuY29tIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy91c2VyZGF0YSI6IjMxMjU4IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy92ZXJzaW9uIjoiMiIsImlzcyI6Imh0dHA6Ly9hcGkucGFyc2FzcGFjZS5jb20vIiwiYXVkIjoiQW55IiwiZXhwIjoxNjA0MTc0MzE2LCJuYmYiOjE1NzI2MzgzMTZ9.4WurKjeKq6Vj9xhabKQvDdL7ng7h8069wLAx6v80HWA';
 mongo.connect(mongoUrl, {
 	useNewUrlParser: true,
 	useUnifiedTopology: true,
@@ -109,4 +111,19 @@ mongo.connect(mongoUrl, {
 		siofuServer.maxFileSize = 3000000;
 		siofuServer.listen(socket);
 	});
+
+	var options = { method: 'POST',
+    url: 'http://api.parsaspace.com/v1/files/upload',
+    headers:
+    {    
+     'content-type': 'multipart/form-data; boundary=---011000010111000001101001',
+      authorization: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1bmlxdWVfbmFtZSI6ImFyaWFua2hlaWJhcmlAZ21haWwuY29tIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy91c2VyZGF0YSI6IjMxMjU4IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy92ZXJzaW9uIjoiMiIsImlzcyI6Imh0dHA6Ly9hcGkucGFyc2FzcGFjZS5jb20vIiwiYXVkIjoiQW55IiwiZXhwIjoxNjA0MTc5MzE2LCJuYmYiOjE1NzI2NDMzMTZ9.0WfsPuI5CztCx1IpUoMqCVaorXosNFTuvcJlWpenvvI'},
+      formData:{ file: { value: fs.createReadStream('C:/Users/Arian/Desktop/photo_2019-10-07_18-37-35.jpg') ,options:{ filename: 'photo_2019-10-07_18-37-35.jpg',contentType: null } }, domain: 'myprivatesubdomain.parsaspace.com', path: '/' } };
+
+      request(options, function (error, response, body) {
+      if (error) throw new Error(error);
+
+      console.log(body);
+	   })
+	
 })
