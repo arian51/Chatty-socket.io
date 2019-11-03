@@ -13,6 +13,8 @@ requirejs.config({
 //------------RUN AFTER LOADING REQUIRMENTS------------//
 require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 
+	var socket = io.connect();
+
 	var message = document.getElementById('message'),
 		handle = document.getElementById('handle'),
 		btn = document.getElementById('send'),
@@ -24,9 +26,12 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		myUsrBtn = document.getElementById('submit-username'),
 
 		toUsername = document.getElementById('username'),
+		pvOutput = document.getElementById('private-output'),
 		pvMessage = document.getElementById('pvMessage'),
-		pvBtn = document.getElementById('send-private');
+		pvBtn = document.getElementById('send-private'),
 
+		file = document.getElementById("plain_input_element");
+		pvFile = document.getElementById("private-file");
 	// eslint-disable-next-line no-redeclare
 	function flash(message) {
 		(function (message) {
@@ -43,7 +48,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	//------------GET USERNAME FOR PRIVATE CHAT------------//
 	myUsrBtn.addEventListener('click', function () {
 		console.log('your username has been set');
-		data = { userName: myUserName, userId: socket.id };
+		data = { userName: myUserName.value, userId: socket.id };
 		socket.emit('setSocketId', data);
 	})
 
@@ -57,13 +62,12 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 
 	//------------SEND USER MESSAGE TO SERVER SIDE (PUBLIC)------------//
 	btn.addEventListener('click', function () {
-		uploader = document.getElementById("plain_input_element");
-		console.log(uploader);
 
 		socket.emit('publicChat', {
 			message: message.value,
 			handle: handle.value,
-			room: roomName.options[roomName.selectedIndex].value
+			room: roomName.options[roomName.selectedIndex].value,
+			file: file.value
 		})
 		message.value = "";
 	});
@@ -71,7 +75,10 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	//------------SEND USER MESSAGE TO SERVER SIDE (PRIVATE)------------//
 	pvBtn.addEventListener('click', function () {
 		console.log('This part');
-		socket.emit('privateChat', { username: toUsername.value, message: pvMessage.value })
+		socket.emit('privateChat', { 
+			username: toUsername.value, 
+			message: pvMessage.value 
+		})
 	})
 
 
@@ -79,24 +86,31 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	socket.on('publicChat', function (data) {
 		console.log(data);
 		if (data.room === roomName.options[roomName.selectedIndex].value) {
-			output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>';
+			output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>' + data.file;
 		}
 	});
 
 	//------------GET MESSAGES FROM SERVER (PRIVATE)------------//
 	socket.on('privateChat', function (data) {
-		console.log(data);
-		output.innerHTML += '<p>' + data + '</p>';
+		console.log('data is' + data);
+		pvOutput.innerHTML += '<p><strong>' + data.username + ': </strong>' + data.message + '</p>';
 	});
 
 	//------------GET MESSAGES FROM SERVER (CHATROOMS)------------//
 	socket.on('getChat', function (data) {
 		console.log(data);
-		output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>';
+		output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>' +
+		'<p>' + data.file + '</p>';
+	});
+
+	//------------GET File FROM SERVER (PublicRooms)------------//
+	socket.on('file', function (data) {
+		console.log('data is' + data);
+		output.innerHTML += '<p><strong>' + data.username + ': </strong>' + data.message + '</p>' + 
+		'<p>' + data.link + '</p>';
 	});
 
 	//-------------UPLOAD-------------//
-	var socket = io.connect();
 	var uploader = new SocketIOFileUpload(socket);
 	uploader.addEventListener("complete", function (event) {
 		console.log(event);
@@ -127,5 +141,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	uploader.useBuffer = true;
 	uploader.chunkSize = 1024;
 
+	uploader.listenOnSubmit(document.getElementById("send"), document.getElementById("plain_input_element"));
+	uploader.listenOnSubmit(document.getElementById("pvBtn"), document.getElementById("file"));
 	window.uploader = uploader;
 });

@@ -64,9 +64,10 @@ mongo.connect(mongoUrl, {
 		});
 
 		// Get the id of each user from client side and equal them to their user name. exp: Arian : 14xz54
-		var userNames = {};	// Change it so we can store usernames in the database
-		socket.on('setSocketId', function (data) {
-			var userName = data.myUserName;
+		const userNames = {};	// Change it so we can store usernames in the database 
+		socket.on('setSocketId', function (data) {	// Each time the program starts userNames will be equal to {}
+			var userName = data.userName;
+			console.log('username is ' + JSON.stringify(userName))
 			var userId = data.userId;
 			userNames[userName] = userId;
 		});
@@ -75,74 +76,91 @@ mongo.connect(mongoUrl, {
 		socket.on('privateChat', function (data) {
 			user = data.username;
 			message = data.message;
+			console.log(user)
+			console.log(userNames)
 			console.log(data)
-			io.to(`${userNames[user]}`).emit('privateChat', message);
+			io.to(`${userNames[user]}`).emit('privateChat', data);
 		})
 
 		// Send public messages 
 		socket.on('publicChat', function (data) {
+			let from = data;
 			let name = data.handle
 			let message = data.message
 			let room = data.room
+			let file = data.file 
+
+			// Upload file to server
+			var siofuServer = new SocketIOFileUploadServer();
+			siofuServer.on("saved", function (event) {
+				console.log(event.file);
+				event.file.clientDetail.base = event.file.base;
+				console.log(event.file.pathName);
+				var fileAddress = event.file.pathName;
+				uploadFile(fileAddress, 'file', from);
+
+			});
+			siofuServer.on("error", function (data) {
+				console.log("Error: " + data.memo);
+				console.log(data.error);
+			});
+			siofuServer.on("start", function (event) {
+				if (/\.exe$/.test(event.file.name)) {
+					console.log("Aborting: " + event.file.id);
+					siofuServer.abort(event.file.id, socket);
+				}
+			});
+			siofuServer.dir = "uploads";
+			siofuServer.maxFileSize = 3000000;
+			siofuServer.listen(socket);
 
 			console.log(data);
-			if (name != '' && message != '' && room != '') {
+			if (name != '' && message != '' && room != '' && file === "") {
 				io.sockets.emit('publicChat', data);
 				chat.insert({ handle: name, message: message, room: room })
 			}
 		});
 
 		// Upload files to database
-		var siofuServer = new SocketIOFileUploadServer();
-		siofuServer.on("saved", function (event) {
-			console.log(event.file);
-			event.file.clientDetail.base = event.file.base;
-			console.log(event.file.pathName);
-			var fileAddress = event.file.pathName;
-			uploadFile(fileAddress);
-
-		});
-		siofuServer.on("error", function (data) {
-			console.log("Error: " + data.memo);
-			console.log(data.error);
-		});
-		siofuServer.on("start", function (event) {
-			if (/\.exe$/.test(event.file.name)) {
-				console.log("Aborting: " + event.file.id);
-				siofuServer.abort(event.file.id, socket);
-			}
-		});
-		siofuServer.dir = "uploads";
-		siofuServer.maxFileSize = 3000000;
-		siofuServer.listen(socket);
 	});
+
+	//------------A FUNCTION FOR SENDING FILE TO EXTERNAL DATABASE------------//
+	function uploadFile(fileAddress, to, from) {
+
+		var fileAddress2 = fileAddress.replace(/\\/g, "/");
+
+		var str = fileAddress2;
+		var n = str.lastIndexOf('/');
+		var fileName = str.substring(n + 1);
+
+		console.log(fileAddress2)
+		var options = {
+			method: 'POST',
+			url: 'http://api.parsaspace.com/v1/files/upload',
+			headers:
+			{
+				'content-type': 'multipart/form-data; boundary=---011000010111000001101001',
+				authorization: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1bmlxdWVfbmFtZSI6ImFyaWFua2hlaWJhcmlAZ21haWwuY29tIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy91c2VyZGF0YSI6IjMxMjU4IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy92ZXJzaW9uIjoiMiIsImlzcyI6Imh0dHA6Ly9hcGkucGFyc2FzcGFjZS5jb20vIiwiYXVkIjoiQW55IiwiZXhwIjoxNjA0MTc5MzE2LCJuYmYiOjE1NzI2NDMzMTZ9.0WfsPuI5CztCx1IpUoMqCVaorXosNFTuvcJlWpenvvI'
+			},
+			formData: { file: { value: fs.createReadStream(fileAddress2), options: { filename: fileName, contentType: null } }, domain: 'myprivatesubdomain.parsaspace.com', path: '/' }
+		};
+
+		return request(options, function (error, response, body) {
+			if (error) throw new Error(error);
+
+			console.log(body);
+			sendBack(to, body, from);
+		})
+	}
+
+	function sendBack(to, link, from) {
+		console.log('this part => ' + link)
+		let data = {};
+		data.username = from.handle;
+		data.message = from.message; 
+		data.room = from.room;
+		data.link = link;
+		io.sockets.emit('file', data);
+		chat.insert({ handle: from.handle, message: from.message, room: from.room, file: link})
+	}
 })
-
-
-//------------A FUNCTION FOR SENDING FILE TO EXTERNAL DATABASE------------//
-function uploadFile(fileAddress) {
-
-	var fileAddress2 = fileAddress.replace(/\\/g, "/");
-
-	var str = fileAddress2;
-	var n = str.lastIndexOf('/');
-	var fileName = str.substring(n + 1);
-
-	console.log(fileAddress2)
-	var options = {
-		method: 'POST',
-		url: 'http://api.parsaspace.com/v1/files/upload',
-		headers:
-		{
-			'content-type': 'multipart/form-data; boundary=---011000010111000001101001',
-			authorization: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1bmlxdWVfbmFtZSI6ImFyaWFua2hlaWJhcmlAZ21haWwuY29tIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy91c2VyZGF0YSI6IjMxMjU4IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy92ZXJzaW9uIjoiMiIsImlzcyI6Imh0dHA6Ly9hcGkucGFyc2FzcGFjZS5jb20vIiwiYXVkIjoiQW55IiwiZXhwIjoxNjA0MTc5MzE2LCJuYmYiOjE1NzI2NDMzMTZ9.0WfsPuI5CztCx1IpUoMqCVaorXosNFTuvcJlWpenvvI'
-		},
-		formData: { file: { value: fs.createReadStream(fileAddress2), options: { filename: fileName, contentType: null } }, domain: 'myprivatesubdomain.parsaspace.com', path: '/' }
-	};
-
-	request(options, function (error, response, body) {
-		if (error) throw new Error(error);
-
-		console.log(body);
-	})
-}
