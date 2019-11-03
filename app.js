@@ -27,6 +27,7 @@ mongo.connect(mongoUrl, {
 	//------------DATABASE CONFIGURATION------------//
 	const db = client.db('mongoChat')
 	const chat = db.collection('chats');
+	const privatechat = db.collection('privatechats');
 	const usernames = db.collection('usernames');
 
 	//------------EXPRESS CONFIGURATION------------//
@@ -81,12 +82,35 @@ mongo.connect(mongoUrl, {
 
 		// Send private message from one user to another 
 		socket.on('privateChat', function (data) {
-			user = data.username;
-			message = data.message;
-			file = data.file;
-			toUser = '';
+			let from = data;
+			let user = data.username;
+			let message = data.message;
+			let file = data.file;
+			let toUser = '';
 
-			console.log(user);
+			// Upload file to server (private)
+			var siofuServer = new SocketIOFileUploadServer();
+			siofuServer.on("saved", function (event) {
+				console.log(event.file);
+				event.file.clientDetail.base = event.file.base;
+				console.log(event.file.pathName);
+				var fileAddress = event.file.pathName;
+				uploadFile(fileAddress, 'uploadFilePrivate', from);
+			});
+			siofuServer.on("error", function (data) {
+				console.log("Error: " + data.memo);
+				console.log(data.error);
+			});
+			siofuServer.on("start", function (event) {
+				if (/\.exe$/.test(event.file.name)) {
+					console.log("Aborting: " + event.file.id);
+					siofuServer.abort(event.file.id, socket);
+				}
+			});
+
+			siofuServer.dir = "uploads";
+			siofuServer.maxFileSize = 3000000;
+			siofuServer.listen(socket);
 
 			usernames.find({ username: user }).toArray(function (err, res) {
 				console.log('res is' + JSON.stringify(res))
@@ -108,14 +132,14 @@ mongo.connect(mongoUrl, {
 			let room = data.room
 			let file = data.file
 
-			// Upload file to server
+			// Upload file to server (Public)
 			var siofuServer = new SocketIOFileUploadServer();
 			siofuServer.on("saved", function (event) {
 				console.log(event.file);
 				event.file.clientDetail.base = event.file.base;
 				console.log(event.file.pathName);
 				var fileAddress = event.file.pathName;
-				uploadFile(fileAddress, 'file', from);
+				uploadFile(fileAddress, 'uploadFilePublic', from);
 
 			});
 			siofuServer.on("error", function (data) {
@@ -175,11 +199,30 @@ mongo.connect(mongoUrl, {
 	function sendBack(to, link, from) {
 		console.log('this part => ' + link)
 		let data = {};
-		data.username = from.handle;
-		data.message = from.message;
-		data.room = from.room;
-		data.link = link;
-		io.sockets.emit('file', data);
-		chat.insert({ handle: from.handle, message: from.message, room: from.room, file: link })
+
+		if (to === 'uploadFilePublic') {	// upload to public room
+			data.username = from.handle;
+			data.message = from.message;
+			data.room = from.room;
+			data.link = link;
+
+			io.sockets.emit(to, data);
+			chat.insert({ handle: from.handle, message: from.message, room: from.room, file: link })
+		} else {						// upload as private chat message
+			data.username = from.username;
+			data.fromUsername = '';
+			data.message = from.message;
+			data.link = link;
+
+			usernames.find({ username: data.username }).toArray(function (err, res) {
+				if (_.isEmpty(res) === false) {
+					console.log('id is' + res[0].userId)
+					toUser = res[0].userId;
+					io.to(`${toUser}`).emit('uploadFilePrivate', data);
+				} else {
+					console.log("user doesn't exist");
+				}
+			});
+		}
 	}
 })

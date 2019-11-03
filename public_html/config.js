@@ -74,12 +74,13 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 
 	//------------SEND USER MESSAGE TO SERVER SIDE (PRIVATE)------------//
 	pvBtn.addEventListener('click', function () {
-		console.log('This part');
-		socket.emit('privateChat', { 
-			username: toUsername.value, 
+
+		socket.emit('privateChat', {
+			username: toUsername.value,
 			message: pvMessage.value,
 			file: pvFile
 		})
+		message.value = "";
 	})
 
 
@@ -101,14 +102,21 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	socket.on('getChat', function (data) {
 		console.log(data);
 		output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>' +
-		'<p>' + data.file + '</p>';
+			'<p>' + data.file + '</p>';
 	});
 
 	//------------GET FILE FROM SERVER (PublicRooms)------------//
-	socket.on('file', function (data) {
+	socket.on('uploadFilePublic', function (data) {
 		console.log('data is' + data);
-		output.innerHTML += '<p><strong>' + data.username + ': </strong>' + data.message + '</p>' + 
-		'<p>' + data.link + '</p>';
+		output.innerHTML += '<p><strong>' + data.username + ': </strong>' + data.message + '</p>' +
+			'<p>' + data.link + '</p>';
+	});
+
+	//------------GET FILE FROM SERVER (PrivateChats)------------//
+	socket.on('uploadFilePrivate', function (data) {
+		console.log('data is' + data);
+		pvOutput.innerHTML += '<p><strong>' + data.username + ': </strong>' + data.message + '</p>' +
+			'<p>' + data.link + '</p>';
 	});
 
 	//-------------UPLOAD-------------//
@@ -143,6 +151,6 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	uploader.chunkSize = 1024;
 
 	uploader.listenOnSubmit(document.getElementById("send"), document.getElementById("plain_input_element"));
-	uploader.listenOnSubmit(document.getElementById("pvBtn"), document.getElementById("private-file"));
+	uploader.listenOnSubmit(document.getElementById("send-private"), document.getElementById("private-file"));
 	window.uploader = uploader;
 });
