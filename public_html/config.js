@@ -22,7 +22,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		roomName = document.getElementById('room'),
 		roomBtn = document.getElementById('enter-room'),
 
-		myUserName = document.getElementById('my-username'),
+		myUsername = document.getElementById('my-username'),
 		myUsrBtn = document.getElementById('submit-username'),
 
 		toUsername = document.getElementById('username'),
@@ -48,7 +48,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	//------------GET USERNAME FOR PRIVATE CHAT------------//
 	myUsrBtn.addEventListener('click', function () {
 		console.log('your username has been set');
-		data = { userName: myUserName.value, userId: socket.id };
+		data = { username: myUsername.value, userId: socket.id };
 		socket.emit('setSocketId', data);
 	})
 
@@ -77,7 +77,8 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		console.log('This part');
 		socket.emit('privateChat', { 
 			username: toUsername.value, 
-			message: pvMessage.value 
+			message: pvMessage.value,
+			file: pvFile
 		})
 	})
 
@@ -103,7 +104,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		'<p>' + data.file + '</p>';
 	});
 
-	//------------GET File FROM SERVER (PublicRooms)------------//
+	//------------GET FILE FROM SERVER (PublicRooms)------------//
 	socket.on('file', function (data) {
 		console.log('data is' + data);
 		output.innerHTML += '<p><strong>' + data.username + ': </strong>' + data.message + '</p>' + 
@@ -142,6 +143,6 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	uploader.chunkSize = 1024;
 
 	uploader.listenOnSubmit(document.getElementById("send"), document.getElementById("plain_input_element"));
-	uploader.listenOnSubmit(document.getElementById("pvBtn"), document.getElementById("file"));
+	uploader.listenOnSubmit(document.getElementById("pvBtn"), document.getElementById("private-file"));
 	window.uploader = uploader;
 });

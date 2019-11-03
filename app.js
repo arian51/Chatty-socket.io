@@ -66,20 +66,38 @@ mongo.connect(mongoUrl, {
 		// Get the id of each user from client side and equal them to their user name. exp: Arian : 14xz54
 		const userNames = {};	// Change it so we can store usernames in the database 
 		socket.on('setSocketId', function (data) {	// Each time the program starts userNames will be equal to {}
-			var userName = data.userName;
-			console.log('username is ' + JSON.stringify(userName))
+			let username = data.username;
 			var userId = data.userId;
-			userNames[userName] = userId;
+
+			usernames.find({ username: username }).toArray(function (err, res) {
+				console.log(res);
+				if (_.isEmpty(res)) {
+					usernames.insertOne({ username: username, userId: userId });
+				} else {
+					usernames.updateOne({ username: res[0].username }, { $set: { userId: userId } });
+				}
+			})
 		});
 
 		// Send private message from one user to another 
 		socket.on('privateChat', function (data) {
 			user = data.username;
 			message = data.message;
-			console.log(user)
-			console.log(userNames)
-			console.log(data)
-			io.to(`${userNames[user]}`).emit('privateChat', data);
+			file = data.file;
+			toUser = '';
+
+			console.log(user);
+
+			usernames.find({ username: user }).toArray(function (err, res) {
+				console.log('res is' + JSON.stringify(res))
+				if (_.isEmpty(res) === false) {
+					console.log('id is' + res[0].userId)
+					toUser = res[0].userId;
+					io.to(`${toUser}`).emit('privateChat', data);
+				} else {
+					console.log("user doesn't exist");
+				}
+			});
 		})
 
 		// Send public messages 
@@ -88,7 +106,7 @@ mongo.connect(mongoUrl, {
 			let name = data.handle
 			let message = data.message
 			let room = data.room
-			let file = data.file 
+			let file = data.file
 
 			// Upload file to server
 			var siofuServer = new SocketIOFileUploadServer();
@@ -110,6 +128,7 @@ mongo.connect(mongoUrl, {
 					siofuServer.abort(event.file.id, socket);
 				}
 			});
+
 			siofuServer.dir = "uploads";
 			siofuServer.maxFileSize = 3000000;
 			siofuServer.listen(socket);
@@ -157,10 +176,10 @@ mongo.connect(mongoUrl, {
 		console.log('this part => ' + link)
 		let data = {};
 		data.username = from.handle;
-		data.message = from.message; 
+		data.message = from.message;
 		data.room = from.room;
 		data.link = link;
 		io.sockets.emit('file', data);
-		chat.insert({ handle: from.handle, message: from.message, room: from.room, file: link})
+		chat.insert({ handle: from.handle, message: from.message, room: from.room, file: link })
 	}
 })
