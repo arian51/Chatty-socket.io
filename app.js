@@ -8,7 +8,9 @@ var http = require("http"),
 	express = require("express"),
 	mongo = require('mongodb').MongoClient,
 	_ = require('lodash'),
-	request = require("request");
+	request = require("request"),
+	bodyParser = require('body-parser'),
+	querystring = require('querystring');    
 
 var app, io;
 
@@ -31,10 +33,30 @@ mongo.connect(mongoUrl, {
 	const usernames = db.collection('usernames');
 
 	//------------EXPRESS CONFIGURATION------------//
+	var urlencodedParser = bodyParser.urlencoded({ extended: false })
+
 	app = express()
 		.use(SocketIOFileUploadServer.router)
 		.use(express.static(__dirname + "/out"))
 		.use(express.static(__dirname + "/public_html"))
+		.use("/scripts", express.static(__dirname + '/public_html/javascripts'))
+		.get('/chat', (req, res) => {
+			res.sendFile(__dirname + '/public_html/chat.html')
+		})	//------------GET USER NAME------------//
+		.post('/', urlencodedParser, function (req, res) {
+			usernames.find({ username: req.body.username }).toArray(function (err, res) {
+				if (_.isEmpty(res)) {
+					usernames.insertOne({ username: req.body.username, userId: 0 });
+				}
+			})
+
+			const query = querystring.stringify({
+				"valid": req.body.username
+			});
+
+			console.log(req.body.username);
+			res.redirect(`/chat.html/` + query);
+		})
 		.listen(4567);
 	io = socketio.listen(app);
 
@@ -44,6 +66,8 @@ mongo.connect(mongoUrl, {
 	//------------ON USER CONNECTION------------//
 	io.sockets.on("connection", function (socket) {
 		console.log('made socket connection', socket.id);
+
+
 
 		// Get chat messages from mongo collection
 		chat.find().limit(100).sort({ _id: 1 }).toArray(function (err, res) {

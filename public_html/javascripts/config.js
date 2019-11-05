@@ -32,6 +32,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 
 		file = document.getElementById("plain_input_element");
 		pvFile = document.getElementById("private-file");
+
 	// eslint-disable-next-line no-redeclare
 	function flash(message) {
 		(function (message) {
