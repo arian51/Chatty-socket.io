@@ -31,7 +31,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		pvBtn = document.getElementById('send-private'),
 
 		file = document.getElementById("plain_input_element");
-		pvFile = document.getElementById("private-file");
+	pvFile = document.getElementById("private-file");
 
 	// eslint-disable-next-line no-redeclare
 	function flash(message) {
@@ -46,12 +46,19 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		})(message);
 	}
 
+	//------------GET USERNAME FROM URL------------//
+	let url_string = window.location.href;
+	let url = new URL(url_string);
+	let username = url.searchParams.get("username");
+	console.log(username);
+	socket.emit('getUsername', username);
+	
 	//------------GET USERNAME FOR PRIVATE CHAT------------//
-	myUsrBtn.addEventListener('click', function () {
-		console.log('your username has been set');
-		data = { username: myUsername.value, userId: socket.id };
-		socket.emit('setSocketId', data);
-	})
+	// myUsrBtn.addEventListener('click', function () {
+	// 	console.log('your username has been set');
+	// 	data = { username: myUsername.value, userId: socket.id };
+	// 	socket.emit('setSocketId', data);
+	// })
 
 	//------------ENTERING A ROOM------------//
 	roomBtn.addEventListener('click', function () {

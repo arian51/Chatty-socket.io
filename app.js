@@ -10,7 +10,7 @@ var http = require("http"),
 	_ = require('lodash'),
 	request = require("request"),
 	bodyParser = require('body-parser'),
-	querystring = require('querystring');    
+	querystring = require('querystring');
 
 var app, io;
 
@@ -39,10 +39,6 @@ mongo.connect(mongoUrl, {
 		.use(SocketIOFileUploadServer.router)
 		.use(express.static(__dirname + "/out"))
 		.use(express.static(__dirname + "/public_html"))
-		.use("/scripts", express.static(__dirname + '/public_html/javascripts'))
-		.get('/chat', (req, res) => {
-			res.sendFile(__dirname + '/public_html/chat.html')
-		})	//------------GET USER NAME------------//
 		.post('/', urlencodedParser, function (req, res) {
 			usernames.find({ username: req.body.username }).toArray(function (err, res) {
 				if (_.isEmpty(res)) {
@@ -51,11 +47,14 @@ mongo.connect(mongoUrl, {
 			})
 
 			const query = querystring.stringify({
-				"valid": req.body.username
+				"username": req.body.username
 			});
 
-			console.log(req.body.username);
-			res.redirect(`/chat.html/` + query);
+			res.redirect(`/chat?` + query);
+		})
+		.get('/chat?:username', (req, res) => {
+			console.log(req.params.username)
+			res.sendFile(__dirname + '/public_html/chat.html')
 		})
 		.listen(4567);
 	io = socketio.listen(app);
@@ -66,8 +65,17 @@ mongo.connect(mongoUrl, {
 	//------------ON USER CONNECTION------------//
 	io.sockets.on("connection", function (socket) {
 		console.log('made socket connection', socket.id);
-
-
+		
+		socket.on('getUsername', function(username){
+			console.log('username is ' + JSON.stringify(username));
+			usernames.find({username: username}).toArray(function (err, res) {
+				if (_.isEmpty(res)) {
+					usernames.insertOne({ username:username, userId: socket.id });
+				} else {
+					usernames.updateOne({ username: res[0].username }, { $set: { userId: socket.id } })
+				}
+			})
+		})
 
 		// Get chat messages from mongo collection
 		chat.find().limit(100).sort({ _id: 1 }).toArray(function (err, res) {
@@ -89,20 +97,20 @@ mongo.connect(mongoUrl, {
 		});
 
 		// Get the id of each user from client side and equal them to their user name. exp: Arian : 14xz54
-		const userNames = {};	// Change it so we can store usernames in the database 
-		socket.on('setSocketId', function (data) {	// Each time the program starts userNames will be equal to {}
-			let username = data.username;
-			var userId = data.userId;
+		// const userNames = {};	// Change it so we can store usernames in the database 
+		// socket.on('setSocketId', function (data) {	// Each time the program starts userNames will be equal to {}
+		// 	let username = data.username;
+		// 	var userId = data.userId;
 
-			usernames.find({ username: username }).toArray(function (err, res) {
-				console.log(res);
-				if (_.isEmpty(res)) {
-					usernames.insertOne({ username: username, userId: userId });
-				} else {
-					usernames.updateOne({ username: res[0].username }, { $set: { userId: userId } });
-				}
-			})
-		});
+		// 	usernames.find({ username: username }).toArray(function (err, res) {
+		// 		console.log(res);
+		// 		if (_.isEmpty(res)) {
+		// 			usernames.insertOne({ username: username, userId: userId });
+		// 		} else {
+		// 			usernames.updateOne({ username: res[0].username }, { $set: { userId: userId } });
+		// 		}
+		// 	})
+		// });
 
 		// Send private message from one user to another 
 		socket.on('privateChat', function (data) {
