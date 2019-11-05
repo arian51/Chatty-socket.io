@@ -22,16 +22,13 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		roomName = document.getElementById('room'),
 		roomBtn = document.getElementById('enter-room'),
 
-		myUsername = document.getElementById('my-username'),
-		myUsrBtn = document.getElementById('submit-username'),
-
 		toUsername = document.getElementById('username'),
 		pvOutput = document.getElementById('private-output'),
 		pvMessage = document.getElementById('pvMessage'),
 		pvBtn = document.getElementById('send-private'),
 
 		file = document.getElementById("plain_input_element");
-	pvFile = document.getElementById("private-file");
+		pvFile = document.getElementById("private-file");
 
 	// eslint-disable-next-line no-redeclare
 	function flash(message) {
@@ -49,16 +46,9 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	//------------GET USERNAME FROM URL------------//
 	let url_string = window.location.href;
 	let url = new URL(url_string);
-	let username = url.searchParams.get("username");
-	console.log(username);
-	socket.emit('getUsername', username);
-	
-	//------------GET USERNAME FOR PRIVATE CHAT------------//
-	// myUsrBtn.addEventListener('click', function () {
-	// 	console.log('your username has been set');
-	// 	data = { username: myUsername.value, userId: socket.id };
-	// 	socket.emit('setSocketId', data);
-	// })
+	let myUsername = url.searchParams.get("username");
+	console.log(myUsername);
+	socket.emit('getUsername', myUsername);
 
 	//------------ENTERING A ROOM------------//
 	roomBtn.addEventListener('click', function () {
@@ -84,9 +74,10 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	pvBtn.addEventListener('click', function () {
 
 		socket.emit('privateChat', {
-			username: toUsername.value,
+			fromUser: myUsername,
+			toUser: toUsername.value,
 			message: pvMessage.value,
-			file: pvFile
+			file: pvFile.value
 		})
 		message.value = "";
 	})
@@ -102,8 +93,8 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 
 	//------------GET MESSAGES FROM SERVER (PRIVATE)------------//
 	socket.on('privateChat', function (data) {
-		console.log('data is' + data);
-		pvOutput.innerHTML += '<p><strong>' + data.username + ': </strong>' + data.message + '</p>';
+		console.log('data is' + JSON.stringify(data));
+		pvOutput.innerHTML += '<p><strong>' + data.fromUser + ': </strong>' + data.message + '</p>';
 	});
 
 	//------------GET MESSAGES FROM SERVER (CHATROOMS)------------//
@@ -123,7 +114,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	//------------GET FILE FROM SERVER (PrivateChats)------------//
 	socket.on('uploadFilePrivate', function (data) {
 		console.log('data is' + data);
-		pvOutput.innerHTML += '<p><strong>' + data.username + ': </strong>' + data.message + '</p>' +
+		pvOutput.innerHTML += '<p><strong>' + data.fromUsername + ': </strong>' + data.message + '</p>' +
 			'<p>' + data.link + '</p>';
 	});
 
@@ -134,7 +125,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		flash("Upload Complete: " + event.file.name);
 	});
 	uploader.addEventListener("choose", function (event) {
-		flash("Files Chosen: " + event.files);
+		flash("Files Chosen: " + JSON.stringify(event.files));
 	});
 	uploader.addEventListener("start", function (event) {
 		event.file.meta.hello = "World";
@@ -146,6 +137,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	uploader.addEventListener("load", function (event) {
 		flash("File Loaded: " + event.file.name);
 		console.log(event);
+		document.getElementById("private-file").value = '';
 	});
 	uploader.addEventListener("error", function (event) {
 		flash("Error: " + event.message);

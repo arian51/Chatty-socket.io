@@ -65,12 +65,12 @@ mongo.connect(mongoUrl, {
 	//------------ON USER CONNECTION------------//
 	io.sockets.on("connection", function (socket) {
 		console.log('made socket connection', socket.id);
-		
-		socket.on('getUsername', function(username){
+
+		socket.on('getUsername', function (username) {
 			console.log('username is ' + JSON.stringify(username));
-			usernames.find({username: username}).toArray(function (err, res) {
+			usernames.find({ username: username }).toArray(function (err, res) {
 				if (_.isEmpty(res)) {
-					usernames.insertOne({ username:username, userId: socket.id });
+					usernames.insertOne({ username: username, userId: socket.id });
 				} else {
 					usernames.updateOne({ username: res[0].username }, { $set: { userId: socket.id } })
 				}
@@ -96,29 +96,14 @@ mongo.connect(mongoUrl, {
 			})
 		});
 
-		// Get the id of each user from client side and equal them to their user name. exp: Arian : 14xz54
-		// const userNames = {};	// Change it so we can store usernames in the database 
-		// socket.on('setSocketId', function (data) {	// Each time the program starts userNames will be equal to {}
-		// 	let username = data.username;
-		// 	var userId = data.userId;
-
-		// 	usernames.find({ username: username }).toArray(function (err, res) {
-		// 		console.log(res);
-		// 		if (_.isEmpty(res)) {
-		// 			usernames.insertOne({ username: username, userId: userId });
-		// 		} else {
-		// 			usernames.updateOne({ username: res[0].username }, { $set: { userId: userId } });
-		// 		}
-		// 	})
-		// });
-
 		// Send private message from one user to another 
 		socket.on('privateChat', function (data) {
 			let from = data;
-			let user = data.username;
+			let fromUser = data.fromUser;
+			let toUser = data.toUser;
+			let toUsername = data.toUser;
 			let message = data.message;
 			let file = data.file;
-			let toUser = '';
 
 			// Upload file to server (private)
 			var siofuServer = new SocketIOFileUploadServer();
@@ -144,16 +129,19 @@ mongo.connect(mongoUrl, {
 			siofuServer.maxFileSize = 3000000;
 			siofuServer.listen(socket);
 
-			usernames.find({ username: user }).toArray(function (err, res) {
-				console.log('res is' + JSON.stringify(res))
-				if (_.isEmpty(res) === false) {
-					console.log('id is' + res[0].userId)
-					toUser = res[0].userId;
-					io.to(`${toUser}`).emit('privateChat', data);
-				} else {
-					console.log("user doesn't exist");
-				}
-			});
+			if (file === "") {
+				console.log('to user is ' + toUser)
+				usernames.find({ username: toUser }).toArray(function (err, res) {
+					if (_.isEmpty(res) === false) {
+						toUser = res[0].userId;
+						console.log('to userid ' + toUser);
+						io.to(`${toUser}`).emit('privateChat', from);
+						privatechat.insertOne({ fromUser: fromUser, toUser: toUsername, message: message, link: null })
+					} else {
+						console.log("user doesn't exist");
+					}
+				});
+			}
 		})
 
 		// Send public messages 
@@ -196,7 +184,6 @@ mongo.connect(mongoUrl, {
 			}
 		});
 
-		// Upload files to database
 	});
 
 	//------------A FUNCTION FOR SENDING FILE TO EXTERNAL DATABASE------------//
@@ -223,7 +210,7 @@ mongo.connect(mongoUrl, {
 		return request(options, function (error, response, body) {
 			if (error) throw new Error(error);
 
-			console.log(body);
+			console.log('body is ' + body);
 			sendBack(to, body, from);
 		})
 	}
@@ -237,12 +224,12 @@ mongo.connect(mongoUrl, {
 			data.message = from.message;
 			data.room = from.room;
 			data.link = link;
-
+			console.log('public upload')
 			io.sockets.emit(to, data);
 			chat.insert({ handle: from.handle, message: from.message, room: from.room, file: link })
 		} else {						// upload as private chat message
-			data.username = from.username;
-			data.fromUsername = '';
+			data.username = from.toUser;
+			data.fromUsername = from.fromUser;
 			data.message = from.message;
 			data.link = link;
 
@@ -251,6 +238,7 @@ mongo.connect(mongoUrl, {
 					console.log('id is' + res[0].userId)
 					toUser = res[0].userId;
 					io.to(`${toUser}`).emit('uploadFilePrivate', data);
+					privatechat.insertOne({ fromUser: data.fromUsername, toUser: from.toUser, message: from.message, link: link })
 				} else {
 					console.log("user doesn't exist");
 				}
