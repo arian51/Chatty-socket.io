@@ -13,6 +13,8 @@ var http = require("http"),
 	querystring = require('querystring');
 
 var app, io;
+var siofuServer = new SocketIOFileUploadServer();
+
 
 //------------DATABASE------------//
 const mongoUrl = 'mongodb://localhost:27017';
@@ -58,7 +60,7 @@ mongo.connect(mongoUrl, {
 		})
 		.listen(4567);
 	io = socketio.listen(app);
-
+	
 	console.log("Listening on port 4567");
 
 
@@ -104,30 +106,14 @@ mongo.connect(mongoUrl, {
 			let toUsername = data.toUser;
 			let message = data.message;
 			let file = data.file;
+			let count = 0;
 
 			// Upload file to server (private)
-			var siofuServer = new SocketIOFileUploadServer();
-			siofuServer.on("saved", function (event) {
-				console.log(event.file);
-				event.file.clientDetail.base = event.file.base;
-				console.log(event.file.pathName);
-				var fileAddress = event.file.pathName;
-				uploadFile(fileAddress, 'uploadFilePrivate', from);
-			});
-			siofuServer.on("error", function (data) {
-				console.log("Error: " + data.memo);
-				console.log(data.error);
-			});
-			siofuServer.on("start", function (event) {
-				if (/\.exe$/.test(event.file.name)) {
-					console.log("Aborting: " + event.file.id);
-					siofuServer.abort(event.file.id, socket);
-				}
-			});
-
-			siofuServer.dir = "uploads";
-			siofuServer.maxFileSize = 3000000;
-			siofuServer.listen(socket);
+			if(file)
+			{	
+				console.log("It's me MAAARIO");
+				uploadToSystem(from);
+			}
 
 			if (file === "") {
 				console.log('to user is ' + toUser)
@@ -153,7 +139,6 @@ mongo.connect(mongoUrl, {
 			let file = data.file
 
 			// Upload file to server (Public)
-			var siofuServer = new SocketIOFileUploadServer();
 			siofuServer.on("saved", function (event) {
 				console.log(event.file);
 				event.file.clientDetail.base = event.file.base;
@@ -176,13 +161,43 @@ mongo.connect(mongoUrl, {
 			siofuServer.dir = "uploads";
 			siofuServer.maxFileSize = 3000000;
 			siofuServer.listen(socket);
-
+			
 			console.log(data);
 			if (name != '' && message != '' && room != '' && file === "") {
 				io.sockets.emit('publicChat', data);
 				chat.insert({ handle: name, message: message, room: room })
 			}
 		});
+		//THE BUG IS 100% HERE
+
+		function uploadToSystem(from)
+		{
+			let count = 0;
+			siofuServer.on("saved", function (event) {
+				console.log(event.file);
+				console.log('uplouding to server hoy hoy' + count)
+				event.file.clientDetail.base = event.file.base;
+				console.log(event.file.pathName);
+				fileAddress = event.file.pathName;
+				uploadFile(fileAddress, 'uploadFilePrivate', from);
+				siofuServer = new SocketIOFileUploadServer();
+			});
+			siofuServer.on("error", function (data) {
+				console.log("Error: " + data.memo);
+				console.log(data.error);
+			});
+			siofuServer.on("start", function (event) {
+				console.log('starting hoy hoy' + count)
+				if (/\.exe$/.test(event.file.name)) {
+					console.log("Aborting: " + event.file.id);
+					siofuServer.abort(event.file.id, socket);
+				}
+			});
+	
+			siofuServer.dir = "uploads";
+			siofuServer.maxFileSize = 3000000;
+			siofuServer.listen(socket);
+		}
 
 	});
 
@@ -245,4 +260,5 @@ mongo.connect(mongoUrl, {
 			});
 		}
 	}
+
 })

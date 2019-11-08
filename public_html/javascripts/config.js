@@ -13,7 +13,8 @@ requirejs.config({
 //------------RUN AFTER LOADING REQUIRMENTS------------//
 require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 
-	var socket = io.connect();
+	var socket = io.connect();	
+	var uploader = new SocketIOFileUpload(socket);
 
 	var message = document.getElementById('message'),
 		handle = document.getElementById('handle'),
@@ -27,9 +28,10 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		pvMessage = document.getElementById('pvMessage'),
 		pvBtn = document.getElementById('send-private'),
 
-		file = document.getElementById("plain_input_element");
+		file = document.getElementById("plain_input_element"),
 		pvFile = document.getElementById("private-file");
 
+		var count = 0;
 	// eslint-disable-next-line no-redeclare
 	function flash(message) {
 		(function (message) {
@@ -119,10 +121,11 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	});
 
 	//-------------UPLOAD-------------//
-	var uploader = new SocketIOFileUpload(socket);
 	uploader.addEventListener("complete", function (event) {
-		console.log(event);
+		console.log(uploader);
+		console.log(event)
 		flash("Upload Complete: " + event.file.name);
+		uploader = new SocketIOFileUpload(socket);
 	});
 	uploader.addEventListener("choose", function (event) {
 		flash("Files Chosen: " + JSON.stringify(event.files));
@@ -137,6 +140,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	uploader.addEventListener("load", function (event) {
 		flash("File Loaded: " + event.file.name);
 		console.log(event);
+		console.log('count is ' + count++);
 		document.getElementById("private-file").value = '';
 	});
 	uploader.addEventListener("error", function (event) {
@@ -146,6 +150,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 			alert("Don't upload such a big file");
 		}
 	});
+
 	uploader.maxFileSize = 3000000;
 	uploader.useBuffer = true;
 	uploader.chunkSize = 1024;
@@ -154,3 +159,8 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	uploader.listenOnSubmit(document.getElementById("send-private"), document.getElementById("private-file"));
 	window.uploader = uploader;
 });
+
+		// pvBtn.removeEventListener("click", instance.prompt, false);
+		// btn.removeEventListener("click", instance.prompt, false);
+		// uploader.destroy();
+		// uploader = null;
