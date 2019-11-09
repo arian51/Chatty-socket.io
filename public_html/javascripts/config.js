@@ -13,7 +13,7 @@ requirejs.config({
 //------------RUN AFTER LOADING REQUIRMENTS------------//
 require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 
-	var socket = io.connect();	
+	var socket = io.connect();
 	var uploader = new SocketIOFileUpload(socket);
 
 	var message = document.getElementById('message'),
@@ -31,7 +31,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		file = document.getElementById("plain_input_element"),
 		pvFile = document.getElementById("private-file");
 
-		var count = 0;
+	var count = 0;
 	// eslint-disable-next-line no-redeclare
 	function flash(message) {
 		(function (message) {
@@ -124,7 +124,12 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	uploader.addEventListener("complete", function (event) {
 		console.log(uploader);
 		console.log(event)
+		console.log('socket =>');
+		console.log(socket)
 		flash("Upload Complete: " + event.file.name);
+		let tempId = socket.id;
+		socket = io.connect();
+		socket.id = tempId;
 		uploader = new SocketIOFileUpload(socket);
 	});
 	uploader.addEventListener("choose", function (event) {
@@ -141,7 +146,9 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		flash("File Loaded: " + event.file.name);
 		console.log(event);
 		console.log('count is ' + count++);
+		document.getElementById("plain_input_element").value = '';
 		document.getElementById("private-file").value = '';
+
 	});
 	uploader.addEventListener("error", function (event) {
 		flash("Error: " + event.message);
@@ -160,7 +167,14 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	window.uploader = uploader;
 });
 
-		// pvBtn.removeEventListener("click", instance.prompt, false);
-		// btn.removeEventListener("click", instance.prompt, false);
-		// uploader.destroy();
-		// uploader = null;
+// pvBtn.removeEventListener("click", instance.prompt, false);
+// btn.removeEventListener("click", instance.prompt, false);
+// uploader.destroy();
+// uploader = null;
+
+// pvBtn.removeEventListener("click", uploader.prompt, false);
+// uploader.destroy();
+// uploader = null;
+// uploader = new SocketIOFileUpload(socket);
+// uploader.listenOnSubmit(document.getElementById("send"), document.getElementById("plain_input_element"));
+// uploader.listenOnSubmit(document.getElementById("send-private"), document.getElementById("private-file"));

@@ -55,7 +55,6 @@ mongo.connect(mongoUrl, {
 			res.redirect(`/chat?` + query);
 		})
 		.get('/chat?:username', (req, res) => {
-			console.log(req.params.username)
 			res.sendFile(__dirname + '/public_html/chat.html')
 		})
 		.listen(4567);
@@ -69,7 +68,6 @@ mongo.connect(mongoUrl, {
 		console.log('made socket connection', socket.id);
 
 		socket.on('getUsername', function (username) {
-			console.log('username is ' + JSON.stringify(username));
 			usernames.find({ username: username }).toArray(function (err, res) {
 				if (_.isEmpty(res)) {
 					usernames.insertOne({ username: username, userId: socket.id });
@@ -91,7 +89,6 @@ mongo.connect(mongoUrl, {
 			let room = data.room
 
 			chat.find({ room: room }).limit(100).sort({ _id: 1 }).toArray(function (err, res) {
-				console.log(res);
 				for (var message of res) {
 					socket.emit('getChat', message);
 				}
@@ -107,20 +104,17 @@ mongo.connect(mongoUrl, {
 			let message = data.message;
 			let file = data.file;
 			let count = 0;
-
+			
 			// Upload file to server (private)
 			if(file)
 			{	
-				console.log("It's me MAAARIO");
-				uploadToSystem(from);
+				uploadToSystem(from, 'uploadFilePrivate');
 			}
 
 			if (file === "") {
-				console.log('to user is ' + toUser)
 				usernames.find({ username: toUser }).toArray(function (err, res) {
 					if (_.isEmpty(res) === false) {
 						toUser = res[0].userId;
-						console.log('to userid ' + toUser);
 						io.to(`${toUser}`).emit('privateChat', from);
 						privatechat.insertOne({ fromUser: fromUser, toUser: toUsername, message: message, link: null })
 					} else {
@@ -138,56 +132,31 @@ mongo.connect(mongoUrl, {
 			let room = data.room
 			let file = data.file
 
-			// Upload file to server (Public)
-			siofuServer.on("saved", function (event) {
-				console.log(event.file);
-				event.file.clientDetail.base = event.file.base;
-				console.log(event.file.pathName);
-				var fileAddress = event.file.pathName;
-				uploadFile(fileAddress, 'uploadFilePublic', from);
-
-			});
-			siofuServer.on("error", function (data) {
-				console.log("Error: " + data.memo);
-				console.log(data.error);
-			});
-			siofuServer.on("start", function (event) {
-				if (/\.exe$/.test(event.file.name)) {
-					console.log("Aborting: " + event.file.id);
-					siofuServer.abort(event.file.id, socket);
-				}
-			});
-
-			siofuServer.dir = "uploads";
-			siofuServer.maxFileSize = 3000000;
-			siofuServer.listen(socket);
+			if(file){
+				uploadToSystem(from, 'uploadFilePublic');
+			}
 			
-			console.log(data);
 			if (name != '' && message != '' && room != '' && file === "") {
 				io.sockets.emit('publicChat', data);
 				chat.insert({ handle: name, message: message, room: room })
 			}
 		});
-		//THE BUG IS 100% HERE
-
-		function uploadToSystem(from)
-		{
-			let count = 0;
+		
+		function uploadToSystem(from, toSocket)
+		{	
+			siofuServer.from = from;
 			siofuServer.on("saved", function (event) {
-				console.log(event.file);
-				console.log('uplouding to server hoy hoy' + count)
+				console.log(siofuServer.from);
 				event.file.clientDetail.base = event.file.base;
-				console.log(event.file.pathName);
 				fileAddress = event.file.pathName;
-				uploadFile(fileAddress, 'uploadFilePrivate', from);
+				uploadFile(fileAddress, toSocket, siofuServer.from);
 				siofuServer = new SocketIOFileUploadServer();
 			});
 			siofuServer.on("error", function (data) {
 				console.log("Error: " + data.memo);
 				console.log(data.error);
 			});
-			siofuServer.on("start", function (event) {
-				console.log('starting hoy hoy' + count)
+			siofuServer.on("start", function (event) {				
 				if (/\.exe$/.test(event.file.name)) {
 					console.log("Aborting: " + event.file.id);
 					siofuServer.abort(event.file.id, socket);
@@ -210,7 +179,6 @@ mongo.connect(mongoUrl, {
 		var n = str.lastIndexOf('/');
 		var fileName = str.substring(n + 1);
 
-		console.log(fileAddress2)
 		var options = {
 			method: 'POST',
 			url: 'http://api.parsaspace.com/v1/files/upload',
@@ -225,7 +193,6 @@ mongo.connect(mongoUrl, {
 		return request(options, function (error, response, body) {
 			if (error) throw new Error(error);
 
-			console.log('body is ' + body);
 			sendBack(to, body, from);
 		})
 	}
@@ -239,7 +206,6 @@ mongo.connect(mongoUrl, {
 			data.message = from.message;
 			data.room = from.room;
 			data.link = link;
-			console.log('public upload')
 			io.sockets.emit(to, data);
 			chat.insert({ handle: from.handle, message: from.message, room: from.room, file: link })
 		} else {						// upload as private chat message
@@ -250,7 +216,6 @@ mongo.connect(mongoUrl, {
 
 			usernames.find({ username: data.username }).toArray(function (err, res) {
 				if (_.isEmpty(res) === false) {
-					console.log('id is' + res[0].userId)
 					toUser = res[0].userId;
 					io.to(`${toUser}`).emit('uploadFilePrivate', data);
 					privatechat.insertOne({ fromUser: data.fromUsername, toUser: from.toUser, message: from.message, link: link })
@@ -259,6 +224,11 @@ mongo.connect(mongoUrl, {
 				}
 			});
 		}
+	}
+
+	function getFrom(from)
+	{
+		return from;
 	}
 
 })
