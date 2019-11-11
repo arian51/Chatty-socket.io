@@ -31,7 +31,6 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 		file = document.getElementById("plain_input_element"),
 		pvFile = document.getElementById("private-file");
 
-	var count = 0;
 	// eslint-disable-next-line no-redeclare
 	function flash(message) {
 		(function (message) {
@@ -87,23 +86,43 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 
 	//------------GET MESSAGES FROM SERVER (PUBLIC)------------//
 	socket.on('publicChat', function (data) {
-		console.log(data);
+
+		let link = '';
+		if(data.file)
+		{
+			link = data.file
+		}
+
 		if (data.room === roomName.options[roomName.selectedIndex].value) {
-			output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>' + data.file;
+			output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>' +
+			'<p>' + link + '</p>';
 		}
 	});
 
 	//------------GET MESSAGES FROM SERVER (PRIVATE)------------//
 	socket.on('privateChat', function (data) {
-		console.log('data is' + JSON.stringify(data));
-		pvOutput.innerHTML += '<p><strong>' + data.fromUser + ': </strong>' + data.message + '</p>';
+		let link = '';
+
+		if(data.link)
+		{
+			link = data.link;
+		}
+
+		pvOutput.innerHTML += '<p><strong>' + data.fromUser + ': </strong>' + data.message + '</p>' +
+		'<p>' + link + '</p>';
 	});
 
 	//------------GET MESSAGES FROM SERVER (CHATROOMS)------------//
 	socket.on('getChat', function (data) {
-		console.log(data);
+		let link = '';
+
+		if(data.file)
+		{
+			link = data.file
+		} 
+		
 		output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>' +
-			'<p>' + data.file + '</p>';
+			'<p>' + link + '</p>';
 	});
 
 	//------------GET FILE FROM SERVER (PublicRooms)------------//
@@ -166,15 +185,3 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 	uploader.listenOnSubmit(document.getElementById("send-private"), document.getElementById("private-file"));
 	window.uploader = uploader;
 });
-
-// pvBtn.removeEventListener("click", instance.prompt, false);
-// btn.removeEventListener("click", instance.prompt, false);
-// uploader.destroy();
-// uploader = null;
-
-// pvBtn.removeEventListener("click", uploader.prompt, false);
-// uploader.destroy();
-// uploader = null;
-// uploader = new SocketIOFileUpload(socket);
-// uploader.listenOnSubmit(document.getElementById("send"), document.getElementById("plain_input_element"));
-// uploader.listenOnSubmit(document.getElementById("send-private"), document.getElementById("private-file"));

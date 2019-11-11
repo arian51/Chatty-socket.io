@@ -3,7 +3,7 @@ var http = require("http"),
 	path = require("path"),
 	mime = require("mime"),
 	fs = require("fs"),
-	SocketIOFileUploadServer = require("../server"),
+	SocketIOFileUploadServer = require("./server.js"),
 	socketio = require("socket.io"),
 	express = require("express"),
 	mongo = require('mongodb').MongoClient,
@@ -59,7 +59,7 @@ mongo.connect(mongoUrl, {
 		})
 		.listen(4567);
 	io = socketio.listen(app);
-	
+
 	console.log("Listening on port 4567");
 
 
@@ -67,6 +67,7 @@ mongo.connect(mongoUrl, {
 	io.sockets.on("connection", function (socket) {
 		console.log('made socket connection', socket.id);
 
+		// Find username and set it's userID to socket.ID. exp: Arian => 423Px3
 		socket.on('getUsername', function (username) {
 			usernames.find({ username: username }).toArray(function (err, res) {
 				if (_.isEmpty(res)) {
@@ -75,16 +76,23 @@ mongo.connect(mongoUrl, {
 					usernames.updateOne({ username: res[0].username }, { $set: { userId: socket.id } })
 				}
 			})
+
+			// Get chat messages from mongo collection (Private)
+			privatechat.find({toUser: username}).toArray(function (err, res) {
+				for (var message of res) {
+					socket.emit('privateChat', message);
+				}
+			})
 		})
 
-		// Get chat messages from mongo collection
+		// Get chat messages from mongo collection (Public)
 		chat.find().limit(100).sort({ _id: 1 }).toArray(function (err, res) {
 			for (var message of res) {
 				socket.emit('publicChat', message);
 			}
 		})
 
-		// Get chat messages that belong the same rooms
+		// Get chat messages that belong the specefic rooms
 		socket.on('getChat', function (data) {
 			let room = data.room
 
@@ -104,10 +112,9 @@ mongo.connect(mongoUrl, {
 			let message = data.message;
 			let file = data.file;
 			let count = 0;
-			
+
 			// Upload file to server (private)
-			if(file)
-			{	
+			if (file) {
 				uploadToSystem(from, 'uploadFilePrivate');
 			}
 
@@ -132,18 +139,17 @@ mongo.connect(mongoUrl, {
 			let room = data.room
 			let file = data.file
 
-			if(file){
+			if (file) {
 				uploadToSystem(from, 'uploadFilePublic');
 			}
-			
+
 			if (name != '' && message != '' && room != '' && file === "") {
 				io.sockets.emit('publicChat', data);
 				chat.insert({ handle: name, message: message, room: room })
 			}
 		});
-		
-		function uploadToSystem(from, toSocket)
-		{	
+
+		function uploadToSystem(from, toSocket) {
 			siofuServer.from = from;
 			siofuServer.on("saved", function (event) {
 				console.log(siofuServer.from);
@@ -156,13 +162,13 @@ mongo.connect(mongoUrl, {
 				console.log("Error: " + data.memo);
 				console.log(data.error);
 			});
-			siofuServer.on("start", function (event) {				
+			siofuServer.on("start", function (event) {
 				if (/\.exe$/.test(event.file.name)) {
 					console.log("Aborting: " + event.file.id);
 					siofuServer.abort(event.file.id, socket);
 				}
 			});
-	
+
 			siofuServer.dir = "uploads";
 			siofuServer.maxFileSize = 3000000;
 			siofuServer.listen(socket);
@@ -225,10 +231,4 @@ mongo.connect(mongoUrl, {
 			});
 		}
 	}
-
-	function getFrom(from)
-	{
-		return from;
-	}
-
 })
