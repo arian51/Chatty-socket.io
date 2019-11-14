@@ -80,7 +80,7 @@ require(["socket.io", "SocketIOFileUpload"], function (io, SocketIOFileUpload) {
 			message: pvMessage.value,
 			file: pvFile.value
 		})
-		message.value = "";
+		pvMessage.value = "";
 	})
 
 

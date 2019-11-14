@@ -67,6 +67,18 @@ mongo.connect(mongoUrl, {
 	io.sockets.on("connection", function (socket) {
 		console.log('made socket connection', socket.id);
 
+		//----------- Seen (Read-UnRead) Feautre ------------//
+		// socket.on('seen', function (pageId) {
+
+		// 	// Each private chat between two users has a page (like telegram or other chat apps)
+		// 	// After user who got message come to that page a message will be emitted to server which has the pageId
+		// 	// The server gets the pageId and find outs the user has seen the message because he entered the private page
+		// 	// Then, the server will look to database for the messages if the messages are in that page (which means they have same pageIds)
+		// 	// Their "seen" property will turn to true 
+
+		// 	privatechat.updateOne({ pageId: pageId }, { $set: { seen: true } })
+		// })
+
 		// Find username and set it's userID to socket.ID. exp: Arian => 423Px3
 		socket.on('getUsername', function (username) {
 			usernames.find({ username: username }).toArray(function (err, res) {
@@ -78,7 +90,7 @@ mongo.connect(mongoUrl, {
 			})
 
 			// Get chat messages from mongo collection (Private)
-			privatechat.find({toUser: username}).toArray(function (err, res) {
+			privatechat.find({ toUser: username }).toArray(function (err, res) {
 				for (var message of res) {
 					socket.emit('privateChat', message);
 				}
@@ -157,6 +169,7 @@ mongo.connect(mongoUrl, {
 				fileAddress = event.file.pathName;
 				uploadFile(fileAddress, toSocket, siofuServer.from);
 				siofuServer = new SocketIOFileUploadServer();
+				fs.unlinkSync(fileAddress);
 			});
 			siofuServer.on("error", function (data) {
 				console.log("Error: " + data.memo);
